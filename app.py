@@ -112,11 +112,6 @@ def process_chat_masuk(messages):
         kategori = extract_field(isi, "Kategori")
         prospek = extract_field(isi, "Prospek")
 
-        if "M2W" not in kategori:
-            continue
-        if prospek not in ("Hot", "Warm", "Cold"):
-            continue
-
         chat_list.append({
             "Waktu": m["waktu"].strftime("%d/%m/%Y %H:%M") if m["waktu"] else "",
             "Customer": extract_field(isi, "Customer"),
@@ -188,16 +183,21 @@ if proses:
     st.success(f"Sesi: **{start_dt.strftime('%d/%m/%Y %H:%M')}** s/d **{end_dt.strftime('%d/%m/%Y %H:%M')}**")
 
     # Ringkasan angka
-    per_prospek = {"Hot": 0, "Warm": 0, "Cold": 0}
+    per_prospek = {"Hot": 0, "Warm": 0, "Cold": 0, "Blank": 0}
     for c in chat_masuk:
-        per_prospek[c["Prospek"]] += 1
+        p = c["Prospek"]
+        if p in ("Hot", "Warm", "Cold"):
+            per_prospek[p] += 1
+        else:
+            per_prospek["Blank"] += 1
 
-    m1, m2, m3, m4, m5 = st.columns(5)
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("Total Pesan Bot", len(messages_in_window))
-    m2.metric("Total Pengajuan M2W", len(pengajuan))
+    m2.metric("Total Chat Masuk", len(chat_masuk))
     m3.metric("🔥 Hot", per_prospek["Hot"])
     m4.metric("🌤️ Warm", per_prospek["Warm"])
     m5.metric("❄️ Cold", per_prospek["Cold"])
+    m6.metric("⬜ Blank", per_prospek["Blank"])
 
     st.divider()
 
