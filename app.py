@@ -193,7 +193,7 @@ if proses:
 
     m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("Total Pesan Bot", len(messages_in_window))
-    m2.metric("Total Chat Masuk", len(chat_masuk))
+    m2.metric("Total Pengajuan M2W", len(pengajuan))
     m3.metric("🔥 Hot", per_prospek["Hot"])
     m4.metric("🌤️ Warm", per_prospek["Warm"])
     m5.metric("❄️ Cold", per_prospek["Cold"])
