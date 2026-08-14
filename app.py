@@ -102,6 +102,11 @@ def process_pengajuan(messages):
     return pengajuan_list
 
 
+CHAT_INLINE_PATTERN = re.compile(
+    r'💬\s*(Hot|Warm|Cold)?\s*🔗\s*(https?://\S+)', re.IGNORECASE
+)
+
+
 def process_chat_masuk(messages):
     chat_list = []
     for m in messages:
@@ -109,16 +114,32 @@ def process_chat_masuk(messages):
         if not isi.startswith("💬"):
             continue
 
-        kategori = extract_field(isi, "Kategori")
-        prospek = extract_field(isi, "Prospek")
+        # Coba format baru: 💬 [Prospek] 🔗 URL
+        inline_match = CHAT_INLINE_PATTERN.search(isi)
+        if inline_match:
+            prospek_raw = (inline_match.group(1) or "").strip()
+            prospek = prospek_raw.capitalize() if prospek_raw else ""
+            link = inline_match.group(2).strip()
 
-        chat_list.append({
-            "Waktu": m["waktu"].strftime("%d/%m/%Y %H:%M") if m["waktu"] else "",
-            "Customer": extract_field(isi, "Customer"),
-            "Kategori": kategori,
-            "Prospek": prospek,
-            "Link": extract_field(isi, "Link"),
-        })
+            chat_list.append({
+                "Waktu": m["waktu"].strftime("%d/%m/%Y %H:%M") if m["waktu"] else "",
+                "Customer": "",
+                "Kategori": "",
+                "Prospek": prospek,
+                "Link": link,
+            })
+        else:
+            # Fallback: format lama field-based
+            kategori = extract_field(isi, "Kategori")
+            prospek = extract_field(isi, "Prospek")
+
+            chat_list.append({
+                "Waktu": m["waktu"].strftime("%d/%m/%Y %H:%M") if m["waktu"] else "",
+                "Customer": extract_field(isi, "Customer"),
+                "Kategori": kategori,
+                "Prospek": prospek,
+                "Link": extract_field(isi, "Link"),
+            })
     return chat_list
 
 
