@@ -11,8 +11,6 @@ st.set_page_config(page_title="Rekap Pengajuan M2W", page_icon="📊", layout="w
 # KONSTANTA
 # ============================================================
 
-BOT_NUMBER = "+62 813-3050-3034"
-
 # ============================================================
 # FUNGSI PARSING
 # ============================================================
@@ -67,7 +65,12 @@ def split_messages(raw_text: str, date_format: str = "MDY"):
 
 
 def extract_field(block: str, label: str):
+    # Format lama: *Label:* value
     match = re.search(rf'\*{label}:\*[ \t]*([^\n🏢👤🏍️📅📍🔗🏷️🎯]*)', block)
+    if match:
+        return match.group(1).strip()
+    # Format baru: emoji Label : value (tanpa bold markers)
+    match = re.search(rf'(?<!\*){re.escape(label)}\s*:\s*([^\n━]*)', block)
     return match.group(1).strip() if match else ""
 
 
@@ -90,12 +93,19 @@ def process_pengajuan(messages):
         if jenis != "M2W":
             continue
 
+        # Coba format lama (gabungan), fallback ke format baru (terpisah)
+        tenor_pencairan = extract_field(isi, "Tenor/Pencairan")
+        if not tenor_pencairan:
+            tenor = extract_field(isi, "Tenor")
+            pencairan = extract_field(isi, "Pencairan")
+            tenor_pencairan = f"{pencairan} / {tenor} bln" if tenor and pencairan else (pencairan or tenor)
+
         pengajuan_list.append({
             "Waktu": m["waktu"].strftime("%d/%m/%Y %H:%M") if m["waktu"] else "",
             "Cabang": extract_field(isi, "Cabang"),
             "Nama": extract_field(isi, "Nama"),
             "Jaminan": extract_field(isi, "Jaminan"),
-            "Tenor/Pencairan": extract_field(isi, "Tenor/Pencairan"),
+            "Tenor/Pencairan": tenor_pencairan,
             "Kota Domisili": extract_field(isi, "Kota Domisili"),
             "Link Admin": extract_field(isi, "Link Admin"),
         })
@@ -161,6 +171,13 @@ with st.sidebar:
 
     uploaded_file = st.file_uploader("Upload file export chat (.txt)", type=["txt"])
 
+    st.subheader("Nama Pengirim Bot")
+    bot_name = st.text_input(
+        "Nama kontak / nomor bot di chat",
+        value="Notif ADS",
+        help="Sesuaikan dengan nama kontak bot di file export, misal: '+62 813-3050-3034' atau 'Notif ADS'",
+    )
+
     st.subheader("Format Tanggal di File")
     date_format_label = st.radio(
         "Sesuaikan dengan format",
@@ -195,7 +212,7 @@ if proses:
     end_dt = datetime.combine(tanggal_sesi, jam_selesai) + timedelta(days=1)
 
     all_messages = split_messages(raw_text, date_format)
-    bot_messages = filter_by_sender(all_messages, BOT_NUMBER)
+    bot_messages = filter_by_sender(all_messages, bot_name.strip())
     messages_in_window = filter_by_window(bot_messages, start_dt, end_dt)
 
     pengajuan = process_pengajuan(messages_in_window)
